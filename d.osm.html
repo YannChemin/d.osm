@@ -1,0 +1,90 @@
+<h2>DESCRIPTION</h2>
+
+<em>d.osm</em> fetches OSINT-relevant OpenStreetMap features -- military
+installations, checkpoints, power infrastructure, communications towers --
+live from the public <a href="https://overpass-api.de/">Overpass API</a>
+for the <b>current GRASS computational region</b>, and displays them with
+pre-baked GRASS symbols shipped with this addon.
+
+Ten feature types are recognized, each an OpenStreetMap tag:
+
+<table>
+<tr><th>type</th><th>OSM tag</th></tr>
+<tr><td>military_airfield</td><td><code>military=airfield</code></td></tr>
+<tr><td>military_base</td><td><code>military=base</code></td></tr>
+<tr><td>bunker</td><td><code>military=bunker</code></td></tr>
+<tr><td>naval_base</td><td><code>military=naval_base</code></td></tr>
+<tr><td>training_area</td><td><code>military=training_area</code></td></tr>
+<tr><td>checkpoint</td><td><code>barrier=checkpoint</code></td></tr>
+<tr><td>border_control</td><td><code>amenity=border_control</code></td></tr>
+<tr><td>power_plant</td><td><code>power=plant</code></td></tr>
+<tr><td>substation</td><td><code>power=substation</code></td></tr>
+<tr><td>communications_tower</td><td><code>man_made=communications_tower</code></td></tr>
+</table>
+
+Unlike the <em>d.osint</em> addon, <em>d.osm</em> has <b>no local
+database</b> -- every run queries Overpass live for whatever region is
+currently set with <em>g.region</em> (reprojected to lat/lon
+automatically, regardless of the current project's CRS), and nothing is
+cached between runs. It also has <b>no dependency on any other project's
+code</b>: only the Python standard library and <code>grass.script</code>
+are used, and all ten GRASS symbol files are embedded as static text
+generated once, ahead of time -- there is no live SVG-to-symbol
+conversion step at runtime.
+
+<h2>NOTES</h2>
+
+<ul>
+  <li>Query results depend entirely on how thoroughly the current region
+    has been mapped in OpenStreetMap -- absence of a symbol on the map is
+    not evidence of absence in reality.</li>
+  <li>Be considerate of the shared public Overpass endpoint: avoid very
+    large regions or tight repeated polling. Use <b>endpoint=</b> to
+    point at a different Overpass mirror or a self-hosted instance if you
+    need heavier use.</li>
+  <li>With <b>format=symbols</b>, one <em>d.vect</em> call is issued per
+    distinct feature type present in the result set, so mixed-type
+    results render with the correct icon per point.</li>
+  <li>If Overpass returns nothing for the current region, an empty vector
+    map is still created (so subsequent commands referencing
+    <b>output=</b> don't fail), and a warning is printed rather than
+    treating "found nothing" as an error.</li>
+</ul>
+
+<h2>EXAMPLES</h2>
+
+Show every recognized feature type in the current region:
+
+<div class="code"><pre>
+g.region region=my_area_of_interest
+d.mon start=cairo
+d.osm
+</pre></div>
+
+Only checkpoints and border crossings, as an attribute table:
+
+<div class="code"><pre>
+d.osm types=checkpoint,border_control format=attributes
+</pre></div>
+
+Query against a self-hosted Overpass instance:
+
+<div class="code"><pre>
+d.osm endpoint=http://localhost:12345/api/interpreter
+</pre></div>
+
+<h2>SEE ALSO</h2>
+
+<em>
+<a href="v.in.ogr.html">v.in.ogr</a>,
+<a href="d.vect.html">d.vect</a>,
+<a href="g.region.html">g.region</a>
+</em>
+
+The private <em>d.osint</em> addon is a related, database-backed
+companion to this tool, built for a specific local OSINTDB rather than
+live queries.
+
+<h2>AUTHORS</h2>
+
+Yann Chemin
