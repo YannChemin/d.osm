@@ -28,6 +28,12 @@ _FAKE_ELEMENTS = [
     {"type": "way", "id": 4, "center": {"lat": 48.855, "lon": 2.355}, "tags": {"power": "substation"}},
     # Deliberately unmatched tag -- must be classified out, never imported.
     {"type": "node", "id": 5, "lat": 48.858, "lon": 2.358, "tags": {"shop": "bakery"}},
+    # bridge=yes co-tagged on an actual road way -- must match "bridge".
+    {"type": "way", "id": 6, "center": {"lat": 48.862, "lon": 2.362}, "tags": {"bridge": "yes", "highway": "primary"}},
+    # bridge=yes with no carrier tag (e.g. on a building) -- must NOT match.
+    {"type": "way", "id": 7, "center": {"lat": 48.863, "lon": 2.363}, "tags": {"bridge": "yes", "building": "yes"}},
+    # tunnel=yes co-tagged on a rail way -- must match "tunnel".
+    {"type": "way", "id": 8, "center": {"lat": 48.864, "lon": 2.364}, "tags": {"tunnel": "yes", "railway": "rail"}},
 ]
 
 

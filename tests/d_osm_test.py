@@ -11,8 +11,27 @@ def test_imports_all_matching_types_by_default(osm_env):
     tools.d_osm(endpoint=osm_env.endpoint, output="out1", format="attributes")
 
     info = tools.v_info(map="out1", flags="t", format="json")
-    # 4 of the 5 fake elements match a known tag; the shop=bakery one must not.
-    assert info["points"] == 4
+    # 6 of the 8 fake elements match a known rule; shop=bakery and the
+    # carrier-less bridge=yes (id 7, no highway/railway) must not.
+    assert info["points"] == 6
+
+
+def test_bridge_requires_carrier_tag(osm_env):
+    tools = osm_env.tools
+    tools.d_osm(endpoint=osm_env.endpoint, types="bridge", output="out_bridge", format="attributes")
+
+    info = tools.v_info(map="out_bridge", flags="t", format="json")
+    # Only element id 6 (bridge=yes + highway=primary) matches; id 7
+    # (bridge=yes + building=yes, no carrier tag) must be excluded.
+    assert info["points"] == 1
+
+
+def test_tunnel_matches_railway_carrier(osm_env):
+    tools = osm_env.tools
+    tools.d_osm(endpoint=osm_env.endpoint, types="tunnel", output="out_tunnel", format="attributes")
+
+    info = tools.v_info(map="out_tunnel", flags="t", format="json")
+    assert info["points"] == 1
 
 
 def test_types_filter_restricts_results(osm_env):
