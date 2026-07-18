@@ -3003,6 +3003,7 @@ POLYGON
  END
 END
 """,
+}
 # --- end embedded GRASS symbols ---
 
 
