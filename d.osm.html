@@ -1,12 +1,13 @@
 <h2>DESCRIPTION</h2>
 
 <em>d.osm</em> fetches OSINT-relevant OpenStreetMap features -- military
-installations, checkpoints, power infrastructure, communications towers --
-live from the public <a href="https://overpass-api.de/">Overpass API</a>
-for the <b>current GRASS computational region</b>, and displays them with
-pre-baked GRASS symbols shipped with this addon.
+installations, checkpoints, power infrastructure, communications towers,
+and transportation chokepoints -- live from the public
+<a href="https://overpass-api.de/">Overpass API</a> for the <b>current
+GRASS computational region</b>, and displays them with pre-baked GRASS
+symbols shipped with this addon.
 
-Ten feature types are recognized, each an OpenStreetMap tag:
+Seventeen feature types are recognized:
 
 <table>
 <tr><th>type</th><th>OSM tag</th></tr>
@@ -20,7 +21,21 @@ Ten feature types are recognized, each an OpenStreetMap tag:
 <tr><td>power_plant</td><td><code>power=plant</code></td></tr>
 <tr><td>substation</td><td><code>power=substation</code></td></tr>
 <tr><td>communications_tower</td><td><code>man_made=communications_tower</code></td></tr>
+<tr><td>civilian_airport</td><td><code>aeroway=aerodrome</code></td></tr>
+<tr><td>port_harbour</td><td><code>harbour=yes</code></td></tr>
+<tr><td>ferry_terminal</td><td><code>amenity=ferry_terminal</code></td></tr>
+<tr><td>railway_station</td><td><code>railway=station</code></td></tr>
+<tr><td>toll_booth</td><td><code>barrier=toll_booth</code></td></tr>
+<tr><td>bridge</td><td><code>bridge=yes</code> + (<code>highway=*</code> or <code>railway=*</code>)</td></tr>
+<tr><td>tunnel</td><td><code>tunnel=yes</code> + (<code>highway=*</code> or <code>railway=*</code>)</td></tr>
 </table>
+
+<b>bridge</b> and <b>tunnel</b> are the two exceptions to "one OSM tag per
+type": in OSM these are modifier tags on a road/rail way, not a
+standalone tag=value pair, so matching requires both the modifier tag
+<em>and</em> a carrier tag (<code>highway</code> or <code>railway</code>,
+any value) on the same element -- <code>bridge=yes</code> alone (e.g. on
+a building) does not match.
 
 Unlike the <em>d.osint</em> addon, <em>d.osm</em> has <b>no local
 database</b> -- every run queries Overpass live for whatever region is
@@ -28,7 +43,7 @@ currently set with <em>g.region</em> (reprojected to lat/lon
 automatically, regardless of the current project's CRS), and nothing is
 cached between runs. It also has <b>no dependency on any other project's
 code</b>: only the Python standard library and <code>grass.script</code>
-are used, and all ten GRASS symbol files are embedded as static text
+are used, and all 17 GRASS symbol files are embedded as static text
 generated once, ahead of time -- there is no live SVG-to-symbol
 conversion step at runtime.
 

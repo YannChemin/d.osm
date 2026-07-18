@@ -1,32 +1,46 @@
 ## DESCRIPTION
 
 *d.osm* fetches OSINT-relevant OpenStreetMap features -- military
-installations, checkpoints, power infrastructure, communications towers --
-live from the public [Overpass API](https://overpass-api.de/) for the
-*current GRASS computational region*, and displays them with pre-baked
-GRASS symbols shipped with this addon.
+installations, checkpoints, power infrastructure, communications towers,
+and transportation chokepoints -- live from the public
+[Overpass API](https://overpass-api.de/) for the *current GRASS
+computational region*, and displays them with pre-baked GRASS symbols
+shipped with this addon.
 
-Ten feature types are recognized, each an OpenStreetMap tag:
+Seventeen feature types are recognized:
 
-| type                    | OSM tag                             |
-|-------------------------|--------------------------------------|
-| military_airfield       | `military=airfield`                  |
-| military_base           | `military=base`                      |
-| bunker                  | `military=bunker`                    |
-| naval_base               | `military=naval_base`                |
-| training_area            | `military=training_area`             |
-| checkpoint               | `barrier=checkpoint`                 |
-| border_control            | `amenity=border_control`             |
-| power_plant               | `power=plant`                        |
-| substation                 | `power=substation`                   |
-| communications_tower        | `man_made=communications_tower`      |
+| type                    | OSM tag                                        |
+|-------------------------|-------------------------------------------------|
+| military_airfield       | `military=airfield`                             |
+| military_base           | `military=base`                                 |
+| bunker                  | `military=bunker`                               |
+| naval_base               | `military=naval_base`                          |
+| training_area            | `military=training_area`                       |
+| checkpoint               | `barrier=checkpoint`                           |
+| border_control            | `amenity=border_control`                      |
+| power_plant               | `power=plant`                                  |
+| substation                 | `power=substation`                            |
+| communications_tower        | `man_made=communications_tower`             |
+| civilian_airport            | `aeroway=aerodrome`                           |
+| port_harbour                 | `harbour=yes`                                |
+| ferry_terminal                | `amenity=ferry_terminal`                    |
+| railway_station                | `railway=station`                          |
+| toll_booth                      | `barrier=toll_booth`                      |
+| bridge                            | `bridge=yes` + (`highway=*` or `railway=*`) |
+| tunnel                              | `tunnel=yes` + (`highway=*` or `railway=*`) |
+
+`bridge` and `tunnel` are the two exceptions to "one OSM tag per type":
+in OSM these are modifier tags on a road/rail way, not a standalone
+tag=value pair, so matching requires both the modifier tag *and* a
+carrier tag (`highway` or `railway`, any value) on the same element --
+`bridge=yes` alone (e.g. on a building) does not match.
 
 Unlike the *d.osint* addon, *d.osm* has **no local database** -- every run
 queries Overpass live for whatever region is currently set with
 *g.region* (reprojected to lat/lon automatically, regardless of the
 current project's CRS), and nothing is cached between runs. It also has
 **no dependency on any other project's code**: only the Python standard
-library and `grass.script` are used, and all ten GRASS symbol files are
+library and `grass.script` are used, and all 17 GRASS symbol files are
 embedded as static text generated once, ahead of time -- there is no
 live SVG-to-symbol conversion step at runtime.
 

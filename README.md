@@ -2,10 +2,10 @@
 
 A [GRASS GIS](https://grass.osgeo.org/) addon that fetches OSINT-relevant
 OpenStreetMap features -- military installations, checkpoints, power
-infrastructure, communications towers -- live from the public
-[Overpass API](https://overpass-api.de/) for the current GRASS
-computational region, and displays them with pre-baked GRASS vector
-symbols shipped with the addon.
+infrastructure, communications towers, and transportation chokepoints --
+live from the public [Overpass API](https://overpass-api.de/) for the
+current GRASS computational region, and displays them with pre-baked
+GRASS vector symbols shipped with the addon.
 
 Fully independent and fully open source:
 
@@ -16,7 +16,7 @@ Fully independent and fully open source:
 - **No dependency on any other project's code.** Only the Python
   standard library and `grass.script` are used.
 - **No live SVG-to-symbol conversion.** GRASS has no native SVG symbol
-  support (see NOTES below), so the ten symbol files under `symbols/`
+  support (see NOTES below), so the 17 symbol files under `symbols/`
   were converted once, ahead of time, from SVG icons using the
   standalone, public-domain `svg2grasssymbol` converter, and are embedded
   directly in `d.osm.py` as static text -- there is no runtime
@@ -24,18 +24,30 @@ Fully independent and fully open source:
 
 ## Recognized feature types
 
-| type                    | OSM tag                          |
-|-------------------------|-----------------------------------|
-| `military_airfield`     | `military=airfield`               |
-| `military_base`         | `military=base`                   |
-| `bunker`                 | `military=bunker`                 |
-| `naval_base`             | `military=naval_base`             |
-| `training_area`          | `military=training_area`          |
-| `checkpoint`             | `barrier=checkpoint`              |
-| `border_control`          | `amenity=border_control`          |
-| `power_plant`             | `power=plant`                     |
-| `substation`               | `power=substation`                |
-| `communications_tower`      | `man_made=communications_tower`   |
+| type                    | OSM tag                                       |
+|-------------------------|-------------------------------------------------|
+| `military_airfield`     | `military=airfield`                              |
+| `military_base`         | `military=base`                                  |
+| `bunker`                 | `military=bunker`                               |
+| `naval_base`             | `military=naval_base`                          |
+| `training_area`          | `military=training_area`                       |
+| `checkpoint`             | `barrier=checkpoint`                           |
+| `border_control`          | `amenity=border_control`                      |
+| `power_plant`             | `power=plant`                                 |
+| `substation`               | `power=substation`                           |
+| `communications_tower`      | `man_made=communications_tower`            |
+| `civilian_airport`          | `aeroway=aerodrome`                        |
+| `port_harbour`               | `harbour=yes`                             |
+| `ferry_terminal`              | `amenity=ferry_terminal`                 |
+| `railway_station`              | `railway=station`                       |
+| `toll_booth`                     | `barrier=toll_booth`                  |
+| `bridge`                           | `bridge=yes` + (`highway=*` or `railway=*`) |
+| `tunnel`                             | `tunnel=yes` + (`highway=*` or `railway=*`) |
+
+`bridge` and `tunnel` need both a modifier tag *and* a carrier tag
+(`highway`/`railway`, any value) on the same OSM element -- see
+`d.osm.md`'s DESCRIPTION for why (they're modifier tags on a road/rail
+way in OSM, not a standalone tag=value pair like the other 15 types).
 
 ## Usage
 
@@ -89,13 +101,15 @@ queries*.
 
 ## Symbol provenance
 
-The ten bundled GRASS symbols were converted from:
+The 17 bundled GRASS symbols were converted from:
 
-- Five [Mapbox Maki](https://github.com/mapbox/maki) icons (CC0):
+- Twelve [Mapbox Maki](https://github.com/mapbox/maki) icons (CC0):
   `military_airfield` (airfield), `checkpoint` (roadblock),
   `border_control` (gate), `power_plant` (industry, a generic
-  stand-in -- Maki has no dedicated power-plant icon), and
-  `communications_tower`.
+  stand-in -- Maki has no dedicated power-plant icon),
+  `communications_tower`, `civilian_airport` (airport), `port_harbour`
+  (harbor), `ferry_terminal` (ferry), `railway_station` (rail),
+  `toll_booth` (toll), `bridge`, and `tunnel`.
 - Five hand-authored icons with no close Maki match: `military_base`,
   `bunker`, `naval_base`, `training_area`, `substation`.
 
