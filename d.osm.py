@@ -27,7 +27,7 @@
 # % type: string
 # % required: no
 # % multiple: yes
-# % options: military_airfield,military_base,bunker,naval_base,training_area,checkpoint,border_control,power_plant,substation,communications_tower
+# % options: military_airfield,military_base,bunker,naval_base,training_area,checkpoint,border_control,power_plant,substation,communications_tower,civilian_airport,port_harbour,ferry_terminal,railway_station,toll_booth,bridge,tunnel
 # % description: Which feature types to query (default: all)
 # %end
 # %option G_OPT_V_OUTPUT
