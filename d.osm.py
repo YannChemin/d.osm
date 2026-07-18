@@ -76,10 +76,17 @@ internally by v.in.ogr, but that's GRASS's own business). Every query is
 live against the public Overpass API for whatever the current GRASS
 computational region happens to be.
 
-All ten GRASS symbol files are embedded below as static text, generated
+All 17 GRASS symbol files are embedded below as static text, generated
 once (ahead of time, not at runtime) from openly-licensed sources via the
 public-domain `svg2grasssymbol` converter -- see this addon's README.md
 for provenance. There is no live SVG-to-symbol conversion step here.
+
+Most feature types are a single OSM tag=value. Bridges and tunnels are
+the exception: in OSM these are modifier tags on a road/rail way
+(`bridge=yes` + `highway=*`, `tunnel=yes` + `railway=*`), not a
+standalone tag=value pair, so their Overpass query needs one
+filter-chain variant per carrier tag and their match logic checks both
+the modifier tag and the presence of a carrier tag.
 """
 
 import json
@@ -93,20 +100,52 @@ import grass.script as gs
 
 GRASS_SYMBOL_GROUP = "osm"
 
-# tag_key/tag_value select the Overpass query and classify results;
-# symbol is the bundled GRASS symbol name (see _SYMBOLS below); label is
-# the human-readable name shown in the "label" attribute column.
+
+def _simple_rule(symbol, label, tag_key, tag_value):
+    return {
+        "symbol": symbol,
+        "label": label,
+        "overpass_filters": (f'["{tag_key}"="{tag_value}"]',),
+        "match": lambda tags, k=tag_key, v=tag_value: tags.get(k) == v,
+    }
+
+
+def _compound_carrier_rule(symbol, label, modifier_key):
+    """bridge=yes / tunnel=yes only count when co-tagged on an actual
+    road or rail way -- see module docstring."""
+    return {
+        "symbol": symbol,
+        "label": label,
+        "overpass_filters": (
+            f'["{modifier_key}"="yes"]["highway"]',
+            f'["{modifier_key}"="yes"]["railway"]',
+        ),
+        "match": lambda tags, k=modifier_key: tags.get(k) == "yes" and ("highway" in tags or "railway" in tags),
+    }
+
+
+# Each rule's Overpass query and classification are derived from the same
+# `overpass_filters`/`match`, so they can't drift apart. `symbol` is the
+# bundled GRASS symbol name (see _SYMBOLS below); `label` is the
+# human-readable name shown in the "label" attribute column.
 RULES = [
-    {"tag_key": "military", "tag_value": "airfield", "symbol": "military_airfield", "label": "Military Airfield"},
-    {"tag_key": "military", "tag_value": "base", "symbol": "military_base", "label": "Military Base"},
-    {"tag_key": "military", "tag_value": "bunker", "symbol": "bunker", "label": "Bunker"},
-    {"tag_key": "military", "tag_value": "naval_base", "symbol": "naval_base", "label": "Naval Base"},
-    {"tag_key": "military", "tag_value": "training_area", "symbol": "training_area", "label": "Training Area"},
-    {"tag_key": "barrier", "tag_value": "checkpoint", "symbol": "checkpoint", "label": "Checkpoint"},
-    {"tag_key": "amenity", "tag_value": "border_control", "symbol": "border_control", "label": "Border Control"},
-    {"tag_key": "power", "tag_value": "plant", "symbol": "power_plant", "label": "Power Plant"},
-    {"tag_key": "power", "tag_value": "substation", "symbol": "substation", "label": "Substation"},
-    {"tag_key": "man_made", "tag_value": "communications_tower", "symbol": "communications_tower", "label": "Communications Tower"},
+    _simple_rule("military_airfield", "Military Airfield", "military", "airfield"),
+    _simple_rule("military_base", "Military Base", "military", "base"),
+    _simple_rule("bunker", "Bunker", "military", "bunker"),
+    _simple_rule("naval_base", "Naval Base", "military", "naval_base"),
+    _simple_rule("training_area", "Training Area", "military", "training_area"),
+    _simple_rule("checkpoint", "Checkpoint", "barrier", "checkpoint"),
+    _simple_rule("border_control", "Border Control", "amenity", "border_control"),
+    _simple_rule("power_plant", "Power Plant", "power", "plant"),
+    _simple_rule("substation", "Substation", "power", "substation"),
+    _simple_rule("communications_tower", "Communications Tower", "man_made", "communications_tower"),
+    _simple_rule("civilian_airport", "Civilian Airport", "aeroway", "aerodrome"),
+    _simple_rule("port_harbour", "Port/Harbour", "harbour", "yes"),
+    _simple_rule("ferry_terminal", "Ferry Terminal", "amenity", "ferry_terminal"),
+    _simple_rule("railway_station", "Railway Station", "railway", "station"),
+    _simple_rule("toll_booth", "Toll Booth", "barrier", "toll_booth"),
+    _compound_carrier_rule("bridge", "Bridge", "bridge"),
+    _compound_carrier_rule("tunnel", "Tunnel", "tunnel"),
 ]
 # --- begin embedded GRASS symbols (generated once from symbols/*.svg via
 # the standalone svg2grasssymbol converter -- see README.md) ---
@@ -3012,8 +3051,9 @@ def _build_overpass_query(rules, bbox, timeout_s):
     bbox_str = f"{south},{west},{north},{east}"
     clauses = []
     for rule in rules:
-        for elem_type in ("node", "way", "relation"):
-            clauses.append(f'{elem_type}["{rule["tag_key"]}"="{rule["tag_value"]}"]({bbox_str});')
+        for filter_chain in rule["overpass_filters"]:
+            for elem_type in ("node", "way", "relation"):
+                clauses.append(f'{elem_type}{filter_chain}({bbox_str});')
     body = "\n  ".join(clauses)
     return f"[out:json][timeout:{timeout_s}];\n(\n  {body}\n);\nout center tags;\n"
 
@@ -3030,18 +3070,18 @@ def _fetch_overpass(endpoint, query, timeout_s):
         gs.fatal(_("Overpass request failed: {}").format(exc))
 
 
-def _classify(tags, rules_by_tag):
-    for (key, value), rule in rules_by_tag.items():
-        if tags.get(key) == value:
+def _classify(tags, rules):
+    for rule in rules:
+        if rule["match"](tags):
             return rule
     return None
 
 
-def _elements_to_geojson_features(elements, rules_by_tag):
+def _elements_to_geojson_features(elements, rules):
     features = []
     for element in elements:
         tags = element.get("tags", {})
-        rule = _classify(tags, rules_by_tag)
+        rule = _classify(tags, rules)
         if rule is None:
             continue
         if "lat" in element and "lon" in element:
@@ -3086,7 +3126,6 @@ def main():
 
     requested_types = options["types"].split(",") if options["types"] else None
     rules = [r for r in RULES if requested_types is None or r["symbol"] in requested_types]
-    rules_by_tag = {(r["tag_key"], r["tag_value"]): r for r in rules}
 
     region = gs.parse_command("g.region", flags="bg")
     bbox = (
@@ -3096,7 +3135,7 @@ def main():
 
     query = _build_overpass_query(rules, bbox, int(options["timeout"]))
     payload = _fetch_overpass(options["endpoint"], query, int(options["timeout"]))
-    features = _elements_to_geojson_features(payload.get("elements", []), rules_by_tag)
+    features = _elements_to_geojson_features(payload.get("elements", []), rules)
 
     output = options["output"]
     if not features:
